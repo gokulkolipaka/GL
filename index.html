@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Check-In App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #searchContainer {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #clearSearch {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 20px;
+        }
+        #attendeeList {
+            list-style-type: none;
+            padding: 0;
+        }
+        .attendee {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .attendee.checked-in {
+            background-color: #e6ffe6;
+        }
+        .check-in-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .undo-btn {
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #downloadBtn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Event Check-In</h1>
+    <div id="searchContainer">
+        <input type="text" id="searchInput" placeholder="Search by name...">
+        <span id="clearSearch">&times;</span>
+    </div>
+    <ul id="attendeeList"></ul>
+    <button id="downloadBtn">Download Check-In Data</button>
+
+    <script>
+        const attendees = [
+            { name: "Aditya Rajendra Kaware", phone: "+919860566041", checkedIn: false, pmiId: ""},
+            { name: "Aiswarya Surapaneni", phone: "+918897314372", checkedIn: false, pmiId: ""},
+            { name: "Ajay Kumar Juluru", phone: "+919574973459", checkedIn: false, pmiId: ""}           
+        ];
+
+        const attendeeList = document.getElementById('attendeeList');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        function renderAttendees(filteredAttendees = attendees) {
+            attendeeList.innerHTML = '';
+            filteredAttendees.forEach(attendee => {
+                const li = document.createElement('li');
+                li.className = 'attendee';
+                li.innerHTML = `
+                    <span>${attendee.name} (${attendee.mobile})</span>
+                    <div>
+                        <input type="text" placeholder="PMI ID" class="pmi-id">
+                        <button class="check-in-btn">Check In</button>
+                        <button class="undo-btn" style="display:none;">Undo</button>
+                    </div>
+                `;
+                attendeeList.appendChild(li);
+
+                const checkInBtn = li.querySelector('.check-in-btn');
+                const undoBtn = li.querySelector('.undo-btn');
+                const pmiInput = li.querySelector('.pmi-id');
+
+                checkInBtn.addEventListener('click', () => {
+                    li.classList.add('checked-in');
+                    checkInBtn.style.display = 'none';
+                    undoBtn.style.display = 'inline-block';
+                    pmiInput.disabled = true;
+                    attendee.checkedIn = true;
+                    attendee.pmiId = pmiInput.value;
+                });
+
+                undoBtn.addEventListener('click', () => {
+                    li.classList.remove('checked-in');
+                    checkInBtn.style.display = 'inline-block';
+                    undoBtn.style.display = 'none';
+                    pmiInput.disabled = false;
+                    attendee.checkedIn = false;
+                    attendee.pmiId = '';
+                });
+            });
+        }
+
+        function filterAttendees() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredAttendees = attendees.filter(attendee => 
+                attendee.name.toLowerCase().includes(searchTerm)
+            );
+            renderAttendees(filteredAttendees);
+        }
+
+        searchInput.addEventListener('input', filterAttendees);
+
+        clearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            filterAttendees();
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const checkedInAttendees = attendees.filter(attendee => attendee.checkedIn);
+            const csv = [
+                ['Name', 'Mobile', 'PMI ID'],
+                ...checkedInAttendees.map(attendee => [attendee.name, attendee.mobile, attendee.pmiId])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'checked_in_attendees.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
+        renderAttendees();
+    </script>
+</body>
+</html>
